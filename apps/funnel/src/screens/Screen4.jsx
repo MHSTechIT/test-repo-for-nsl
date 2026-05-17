@@ -4,7 +4,7 @@ import { m } from 'framer-motion';
 import { useFunnel } from '../context/FunnelContext';
 import { t } from '../translations';
 import { trackEvent, getVisitorId } from '../utils/trackEvent';
-import { pixelFormStarted, pixelLead } from '../utils/pixel';
+import { pixelFormStarted, pixelLead, newEventID, getFbpFbc } from '../utils/pixel';
 
 const slideIn = {
   initial: { opacity: 0, y: 12 },
@@ -73,6 +73,13 @@ export default function Screen4({ onSubmitted, onClose }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
+    // Mint Meta CAPI dedup IDs up-front so we send the SAME UUIDs to
+    // the backend and to the browser pixel. Same event_id → Meta
+    // counts it once across both transports.
+    const leadEventID = newEventID();
+    const crEventID   = newEventID();
+    const { fbp, fbc } = getFbpFbc();
+
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -89,6 +96,12 @@ export default function Screen4({ onSubmitted, onClose }) {
           occupation: state.occupation || null,
           language_pref: state.lang,
           visitor_id: getVisitorId(),
+          // Meta CAPI dedup keys
+          meta_event_id: leadEventID,
+          meta_event_id_cr: crEventID,
+          fbp,
+          fbc,
+          event_source_url: window.location.href,
           ...state.utm,
         }),
       });
@@ -116,11 +129,13 @@ export default function Screen4({ onSubmitted, onClose }) {
       });
 
       trackEvent('registration_submitted', state.webinarConfig?.next_webinar_at);
-      // Meta Pixel: Lead + CompleteRegistration with Advanced Matching
-      // and the full qualification value baked into the bid signal.
+      // Meta Pixel (browser): Lead + CompleteRegistration with Advanced
+      // Matching and the same event_ids the backend will use for CAPI
+      // — that's what makes them dedupe in Events Manager.
       pixelLead(
         { fullName, email, whatsappNumber, leadScore: data.lead_score },
         state,
+        { leadEventID, crEventID },
       );
       setSubmitting(false);
       if (data.lead_id) localStorage.setItem('mhs_lead_id', data.lead_id);

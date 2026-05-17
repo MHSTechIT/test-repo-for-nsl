@@ -22,13 +22,28 @@ const fbq = (...args) => {
   try { window.fbq(...args); } catch (_) {}
 };
 
-/* Crypto-random per-event ID so future server-side CAPI sends can
-   dedupe with the browser pixel. */
-function newEventID() {
+/* Crypto-random per-event ID. Exported so callers (Screen4, WhatsAppPage)
+   can mint an ID, fire the browser pixel with it, AND send the same ID
+   to the backend so Conversions API server-side events dedupe. */
+export function newEventID() {
   try {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   } catch (_) {}
   return 'e_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+/** Read the _fbp / _fbc cookies that the Pixel script sets so we can
+ *  forward them to the backend for CAPI user_data matching. */
+export function getFbpFbc() {
+  if (typeof document === 'undefined') return { fbp: null, fbc: null };
+  const out = { fbp: null, fbc: null };
+  for (const part of (document.cookie || '').split(';')) {
+    const [k, ...rest] = part.trim().split('=');
+    const v = rest.join('=');
+    if (k === '_fbp') out.fbp = v;
+    else if (k === '_fbc') out.fbc = v;
+  }
+  return out;
 }
 
 /* ── Lead-quality scoring used as Meta `value` so the optimization
@@ -157,8 +172,8 @@ export const pixelFormStarted = (state) => fbq('trackCustom', 'RegistrationFormS
  *  Advanced Matching (email/phone/name) and fires with the full
  *  qualification value rolled in so Meta optimizes for **this profile**
  *  not just "anyone who submitted a form". */
-export function pixelLead({ fullName, email, whatsappNumber, leadScore }, state = {}) {
-  if (typeof window === 'undefined' || !window.fbq) return;
+export function pixelLead({ fullName, email, whatsappNumber, leadScore }, state = {}, ids = {}) {
+  if (typeof window === 'undefined' || !window.fbq) return { leadEventID: null, crEventID: null };
 
   // Re-init with Advanced Matching parameters. SDK hashes client-side
   // before sending so PII never leaves the user's browser in plaintext.
@@ -175,6 +190,8 @@ export function pixelLead({ fullName, email, whatsappNumber, leadScore }, state 
   } catch (_) {}
 
   const totalValue = rollingValue(state) + (leadScore ? leadScore * 50 : 0);
+  const leadEventID = ids.leadEventID || newEventID();
+  const crEventID   = ids.crEventID   || newEventID();
 
   fbq('track', 'Lead', {
     content_name: 'webinar_registration',
@@ -187,7 +204,7 @@ export function pixelLead({ fullName, email, whatsappNumber, leadScore }, state 
     on_medication: state.onMedication || null,
     age_group: state.ageGroup || null,
     occupation: state.occupation || null,
-  }, { eventID: newEventID() });
+  }, { eventID: leadEventID });
 
   // CompleteRegistration alongside Lead so campaigns optimizing for
   // either standard event get the signal.
@@ -197,15 +214,21 @@ export function pixelLead({ fullName, email, whatsappNumber, leadScore }, state 
     currency: CURRENCY,
     status: true,
     lead_score: leadScore || null,
-  }, { eventID: newEventID() });
+  }, { eventID: crEventID });
+
+  return { leadEventID, crEventID };
 }
 
 /** Fires when the user actually taps "Join WhatsApp Group" on the
  *  confirmation screen — strongest commitment signal we have. */
-export const pixelScheduleConfirmed = (leadScore, state = {}) => fbq('track', 'Schedule', {
-  content_name: 'webinar_attendance_committed',
-  content_category: 'schedule',
-  value: rollingValue(state) + (leadScore ? leadScore * 100 : 0),
-  currency: CURRENCY,
-  lead_score: leadScore || null,
-}, { eventID: newEventID() });
+export function pixelScheduleConfirmed(leadScore, state = {}, explicitEventID) {
+  const eventID = explicitEventID || newEventID();
+  fbq('track', 'Schedule', {
+    content_name: 'webinar_attendance_committed',
+    content_category: 'schedule',
+    value: rollingValue(state) + (leadScore ? leadScore * 100 : 0),
+    currency: CURRENCY,
+    lead_score: leadScore || null,
+  }, { eventID });
+  return eventID;
+}

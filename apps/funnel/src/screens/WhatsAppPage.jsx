@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { m } from 'framer-motion';
 import { useFunnel } from '../context/FunnelContext';
 import { trackEvent } from '../utils/trackEvent';
-import { pixelScheduleConfirmed } from '../utils/pixel';
+import { pixelScheduleConfirmed, newEventID, getFbpFbc } from '../utils/pixel';
 
 /* ── Link expiry countdown ── */
 function LinkExpiryTimer() {
@@ -58,13 +58,24 @@ export default function WhatsAppPage({ leadId: leadIdProp }) {
 
   function handleJoinClick() {
     trackEvent('wa_join_clicked', webinarAt);
-    // Strongest commitment signal — tells Meta this lead is showing up.
-    pixelScheduleConfirmed(funnelState?.leadScore, funnelState);
+    // Mint a shared event_id so browser Pixel + server CAPI dedupe.
+    const scheduleEventID = newEventID();
+    pixelScheduleConfirmed(funnelState?.leadScore, funnelState, scheduleEventID);
+    const { fbp, fbc } = getFbpFbc();
     // lead_id passed as a prop (inline overlay) or URL param (direct nav)
     const params = new URLSearchParams(window.location.search);
     const leadId = leadIdProp || params.get('lead_id') || localStorage.getItem('mhs_lead_id');
     if (leadId) {
-      fetch(`/api/leads/${leadId}/wa-click`, { method: 'PATCH' }).catch(() => {});
+      fetch(`/api/leads/${leadId}/wa-click`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          meta_event_id: scheduleEventID,
+          fbp,
+          fbc,
+          event_source_url: window.location.href,
+        }),
+      }).catch(() => {});
     }
   }
 
