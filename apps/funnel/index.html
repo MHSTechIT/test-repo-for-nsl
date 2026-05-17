@@ -12,8 +12,32 @@
     <!-- Fonts: async (non-blocking) -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://connect.facebook.net" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Meta Pixel — Automatic Advanced Matching ON.
+         Once initialized here, fbq is queued and React app calls it
+         via apps/funnel/src/utils/pixel.js for every qualification
+         step. The init() with `autoConfig: true` lets Meta extract
+         email/phone/name from form fields automatically, and the
+         per-event helpers also pass them explicitly for redundancy. -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      // Init with Automatic Advanced Matching — Meta hashes + matches
+      // form fields (email, phone, name) without us doing PII handling.
+      fbq('init', '1866739047322363', {}, { autoConfig: true });
+      fbq('track', 'PageView');
+    </script>
+    <!-- noscript fallback intentionally omitted: this SPA does not
+         render without JS, so a noscript pixel would never fire. -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" /></noscript>
   </head>

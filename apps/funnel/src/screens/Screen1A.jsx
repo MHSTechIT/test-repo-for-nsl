@@ -5,6 +5,13 @@ import { useFunnel } from '../context/FunnelContext';
 import { t } from '../translations';
 import CountdownTimer, { stopTick } from '../components/CountdownTimer';
 import { trackEvent } from '../utils/trackEvent';
+import {
+  pixelViewContent, pixelStartQualification,
+  pixelSugarSelected, pixelDisqualified,
+  pixelDurationSelected, pixelMedicationSelected,
+  pixelAgeSelected, pixelOccupationSelected,
+  pixelFormOpened,
+} from '../utils/pixel';
 
 const Screen4 = lazy(() => import('./Screen4'));
 const WhatsAppPage = lazy(() => import('./WhatsAppPage'));
@@ -214,6 +221,7 @@ export default function Screen1A() {
     if (!pageTracked.current && state.webinarConfig?.next_webinar_at) {
       pageTracked.current = true;
       trackEvent('page_visited', state.webinarConfig.next_webinar_at);
+      pixelViewContent(state.utm || {});
     }
   }, [state.webinarConfig?.next_webinar_at]);
   useEffect(() => {
@@ -221,6 +229,7 @@ export default function Screen1A() {
       if (!pageTracked.current) {
         pageTracked.current = true;
         trackEvent('page_visited', state.webinarConfig?.next_webinar_at ?? null);
+        pixelViewContent(state.utm || {});
       }
     }, 3000);
     return () => clearTimeout(t);
@@ -269,6 +278,7 @@ export default function Screen1A() {
     const sugarEventMap = { '150-250': 'sugar_150_250', '250+': 'sugar_250_plus', 'none': 'disqualified_no_diabetes' };
     if (sugarEventMap[opt.id]) trackEvent(sugarEventMap[opt.id], state.webinarConfig?.next_webinar_at);
     if (opt.disqualify) {
+      pixelDisqualified('no_diabetes', state);
       dispatch({ type: 'SET_NAV_DIRECTION', payload: 'forward' });
       setLeaving(true);
       setTimeout(() => {
@@ -276,6 +286,7 @@ export default function Screen1A() {
       }, 420);
       return;
     }
+    pixelSugarSelected(opt.id, state);
     dispatch({ type: 'SET_SUGAR_LEVEL', payload: opt.id });
     // Transition to personalize step (duration + medication)
     setPopupStep('personalize');
@@ -285,6 +296,8 @@ export default function Screen1A() {
     if (!selectedDuration || !selectedMedication) return;
     trackEvent(`duration_${selectedDuration}`, state.webinarConfig?.next_webinar_at);
     trackEvent(`medication_${selectedMedication}`, state.webinarConfig?.next_webinar_at);
+    pixelDurationSelected(selectedDuration, state);
+    pixelMedicationSelected(selectedMedication, { ...state, diabetesDuration: selectedDuration });
     dispatch({ type: 'SET_DURATION', payload: selectedDuration });
     dispatch({ type: 'SET_MEDICATION', payload: selectedMedication });
     setPopupStep('demographics');
@@ -292,8 +305,11 @@ export default function Screen1A() {
 
   function handleDemographicsContinue() {
     if (!selectedAge || !selectedOccupation) return;
+    pixelAgeSelected(selectedAge, state);
+    pixelOccupationSelected(selectedOccupation, { ...state, ageGroup: selectedAge });
     dispatch({ type: 'SET_AGE_GROUP', payload: selectedAge });
     dispatch({ type: 'SET_OCCUPATION', payload: selectedOccupation });
+    pixelFormOpened({ ...state, ageGroup: selectedAge, occupation: selectedOccupation });
     setExpanded(false);
     setPopupStep('sugar');
     setView('register');
@@ -347,7 +363,7 @@ export default function Screen1A() {
   const ctaButton = (
     <div style={{ position: 'relative' }}>
       <button
-        onClick={() => { stopTick(); trackEvent('cta_clicked', state.webinarConfig?.next_webinar_at); setExpanded(true); }}
+        onClick={() => { stopTick(); trackEvent('cta_clicked', state.webinarConfig?.next_webinar_at); pixelStartQualification(state.utm || {}); setExpanded(true); }}
         className="cta-pulse"
         style={{
           position: 'relative', zIndex: 1,

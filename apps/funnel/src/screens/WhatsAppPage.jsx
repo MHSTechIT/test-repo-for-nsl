@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { m } from 'framer-motion';
+import { useFunnel } from '../context/FunnelContext';
 import { trackEvent } from '../utils/trackEvent';
+import { pixelScheduleConfirmed } from '../utils/pixel';
 
 /* ── Link expiry countdown ── */
 function LinkExpiryTimer() {
@@ -29,6 +31,7 @@ function LinkExpiryTimer() {
 }
 
 export default function WhatsAppPage({ leadId: leadIdProp }) {
+  const { state: funnelState } = useFunnel();
   const [waLink, setWaLink] = useState('');
   const [webinarAt, setWebinarAt] = useState(null);
 
@@ -55,6 +58,8 @@ export default function WhatsAppPage({ leadId: leadIdProp }) {
 
   function handleJoinClick() {
     trackEvent('wa_join_clicked', webinarAt);
+    // Strongest commitment signal — tells Meta this lead is showing up.
+    pixelScheduleConfirmed(funnelState?.leadScore, funnelState);
     // lead_id passed as a prop (inline overlay) or URL param (direct nav)
     const params = new URLSearchParams(window.location.search);
     const leadId = leadIdProp || params.get('lead_id') || localStorage.getItem('mhs_lead_id');

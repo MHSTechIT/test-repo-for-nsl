@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m } from 'framer-motion';
 import { useFunnel } from '../context/FunnelContext';
 import { t } from '../translations';
 import { trackEvent, getVisitorId } from '../utils/trackEvent';
+import { pixelFormStarted, pixelLead } from '../utils/pixel';
 
 const slideIn = {
   initial: { opacity: 0, y: 12 },
@@ -45,7 +46,17 @@ export default function Screen4({ onSubmitted, onClose }) {
     fetch('/api/health').catch(() => {});
   }, []);
 
+  // Fires once on the first keystroke into any field — tells Meta the
+  // user is engaging with the form, not just looking at it.
+  const formStartedRef = useRef(false);
+  function markFormStarted() {
+    if (formStartedRef.current) return;
+    formStartedRef.current = true;
+    pixelFormStarted(state);
+  }
+
   function handlePhoneInput(e) {
+    markFormStarted();
     const val = e.target.value.replace(/\D/g, '').slice(0, 10);
     setWhatsappNumber(val);
   }
@@ -105,6 +116,12 @@ export default function Screen4({ onSubmitted, onClose }) {
       });
 
       trackEvent('registration_submitted', state.webinarConfig?.next_webinar_at);
+      // Meta Pixel: Lead + CompleteRegistration with Advanced Matching
+      // and the full qualification value baked into the bid signal.
+      pixelLead(
+        { fullName, email, whatsappNumber, leadScore: data.lead_score },
+        state,
+      );
       setSubmitting(false);
       if (data.lead_id) localStorage.setItem('mhs_lead_id', data.lead_id);
       if (onSubmitted) onSubmitted(data.lead_id);
@@ -223,7 +240,7 @@ export default function Screen4({ onSubmitted, onClose }) {
             <input
               type="text"
               value={fullName}
-              onChange={e => setFullName(e.target.value)}
+              onChange={e => { markFormStarted(); setFullName(e.target.value); }}
               placeholder="Full name"
               autoCapitalize="words"
               style={inputBase(errors.fullName)}
@@ -240,7 +257,7 @@ export default function Screen4({ onSubmitted, onClose }) {
             <input
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { markFormStarted(); setEmail(e.target.value); }}
               placeholder="Email address"
               style={inputBase(errors.email)}
             />
