@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://nsl-lgkx.onrender.com/api/:path*"
+      "destination": "https://test-repo-for-nsl.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
