@@ -24,6 +24,15 @@ const TEST_CODE = process.env.META_TEST_EVENT_CODE || '';
 const GRAPH_VERSION = 'v18.0';
 const ENABLED = !!TOKEN;
 
+// Boot-time diagnostic so we can see in Render logs whether CAPI
+// is wired correctly. Doesn't print the token itself, only length.
+console.log('[metaCapi] init', {
+  enabled: ENABLED,
+  pixelId: PIXEL_ID,
+  tokenLength: TOKEN.length,
+  testEventCode: TEST_CODE || '(none — events go LIVE)',
+});
+
 /** SHA-256 of a normalized string. Returns null for blanks. */
 function sha256(s) {
   if (!s) return null;
@@ -64,7 +73,10 @@ function parseFbpFbc(cookieHeader) {
  * @param {object} [opts.custom_data]     — { value, currency, content_name, content_category, ...whatever browser sent }
  */
 async function sendEvent(opts) {
-  if (!ENABLED) return { sent: false, reason: 'no_token' };
+  if (!ENABLED) {
+    console.warn('[metaCapi] SKIPPED — META_CAPI_ACCESS_TOKEN env var is not set on this server');
+    return { sent: false, reason: 'no_token' };
+  }
 
   const {
     event_name,
@@ -74,8 +86,8 @@ async function sendEvent(opts) {
     custom_data = {},
   } = opts || {};
 
-  if (!event_name) return { sent: false, reason: 'missing_event_name' };
-  if (!event_id)   return { sent: false, reason: 'missing_event_id' };
+  if (!event_name) { console.warn('[metaCapi] SKIPPED — missing event_name'); return { sent: false, reason: 'missing_event_name' }; }
+  if (!event_id)   { console.warn('[metaCapi] SKIPPED — missing event_id (frontend did not send meta_event_id)'); return { sent: false, reason: 'missing_event_id' }; }
 
   // Hash PII before transmission. Meta requires SHA-256 of normalized values.
   const ud = {};
@@ -119,6 +131,7 @@ async function sendEvent(opts) {
       console.error('[metaCapi]', event_name, 'failed:', res.status, body.slice(0, 300));
       return { sent: false, status: res.status, body: body.slice(0, 300) };
     }
+    console.log('[metaCapi] ✓', event_name, 'event_id=' + event_id, 'value=' + (custom_data.value || 0), TEST_CODE ? '(TEST)' : '(LIVE)');
     return { sent: true, status: res.status };
   } catch (err) {
     console.error('[metaCapi]', event_name, 'network error:', err.message);
