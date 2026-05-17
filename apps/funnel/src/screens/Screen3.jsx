@@ -7,11 +7,6 @@ import { computeLeadScore } from '../utils/scoring';
 import TopBar from '../components/TopBar';
 import Confetti from '../components/Confetti';
 import { FlipUnit } from '../components/FlipCard';
-import {
-  pixelDurationSelected,
-  pixelInitiateRegistration, pixelLead,
-  pixelCompleteRegistration, pixelFormAbandoned,
-} from '../utils/pixel';
 import { trackEvent, getVisitorId } from '../utils/trackEvent';
 
 const durationOptions = ['new', 'mid', 'long'];
@@ -164,8 +159,6 @@ export default function Screen3() {
   function handleFirstInput() {
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
-      pixelInitiateRegistration();
-      abandonRef.current = setTimeout(() => { if (!submitting) pixelFormAbandoned(); }, 30000);
     }
   }
 
@@ -174,7 +167,6 @@ export default function Screen3() {
     if (durationEventMap[durKey]) trackEvent(durationEventMap[durKey], state.webinarConfig?.next_webinar_at);
     dispatch({ type: 'SET_DURATION', payload: durKey });
     dispatch({ type: 'SET_NAV_DIRECTION', payload: 'forward' });
-    pixelDurationSelected(durKey, computeLeadScore(state.sugarLevel, durKey));
     /* grow card first, then flip into form */
     setCardHeight(580);
     setTimeout(() => doFlip('form'), 220);
@@ -197,8 +189,6 @@ export default function Screen3() {
       if (res.status === 409) { setServerError(t.screen4.paused[lang]); setSubmitting(false); return; }
       if (!res.ok || !data.success) { setServerError('Something went wrong. Please try again.'); setSubmitting(false); return; }
 
-      pixelLead({ full_name: fullName, email, whatsapp_number: phone });
-      pixelCompleteRegistration({ lead_score: data.lead_score });
       dispatch({ type: 'SET_FORM_FIELD', field: 'fullName', value: fullName });
       dispatch({ type: 'SET_FORM_FIELD', field: 'whatsappNumber', value: phone });
       dispatch({ type: 'SET_FORM_FIELD', field: 'email', value: email });
