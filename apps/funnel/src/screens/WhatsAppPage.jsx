@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { m } from 'framer-motion';
-import { useFunnel } from '../context/FunnelContext';
 import { trackEvent } from '../utils/trackEvent';
 
 /* ── Link expiry countdown ── */
@@ -30,34 +29,70 @@ function LinkExpiryTimer() {
 }
 
 export default function WhatsAppPage() {
-  const { state } = useFunnel();
-  // Live link — comes from FunnelContext which already has SSE + initial fetch
-  const waLink = state.webinarConfig?.tuesday_whatsapp_link || '';
+  const [waLink, setWaLink] = useState('');
+  const [webinarAt, setWebinarAt] = useState(null);
+
+  useEffect(() => {
+    // Initial fetch — get current link immediately
+    fetch(`/api/webinar-config?_=${Date.now()}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => {
+        setWaLink(data.tuesday_whatsapp_link || '');
+        setWebinarAt(data.next_webinar_at || null);
+      })
+      .catch(() => {});
+
+    // SSE — update the link in real-time whenever admin changes it
+    const es = new EventSource('/api/webinar-config/events');
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.tuesday_whatsapp_link) setWaLink(data.tuesday_whatsapp_link);
+      } catch {}
+    };
+    return () => es.close();
+  }, []);
 
   function handleJoinClick() {
-    trackEvent('wa_join_clicked', state.webinarConfig?.next_webinar_at);
-    const leadId = localStorage.getItem('mhs_lead_id');
+    trackEvent('wa_join_clicked', webinarAt);
+    // lead_id passed as URL param from the funnel registration page
+    const params = new URLSearchParams(window.location.search);
+    const leadId = params.get('lead_id') || localStorage.getItem('mhs_lead_id');
     if (leadId) {
       fetch(`/api/leads/${leadId}/wa-click`, { method: 'PATCH' }).catch(() => {});
     }
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 0, left: 0, right: 0,
-      maxWidth: 480,
-      margin: '0 auto',
-    }}>
+    <>
+      {/* Blur backdrop — matches the popup pattern so the funnel landing
+          is visible blurred behind the bottom-sheet. */}
+      <m.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 40,
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          background: 'rgba(167,139,250,0.35)',
+        }}
+      />
+      <div style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        maxWidth: 480,
+        margin: '0 auto',
+        zIndex: 50,
+      }}>
       <m.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
           width: '100%',
-          background: 'rgba(255,255,255,0.55)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
           border: '1px solid rgba(139,92,246,0.18)',
           borderBottom: 'none',
           borderRadius: '24px 24px 0 0',
@@ -151,6 +186,7 @@ export default function WhatsAppPage() {
           Join WhatsApp Group
         </m.a>
       </m.div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -351,6 +351,15 @@ const _clickMigration = pool.query(`
   -- cross-device dedupe via the lead's phone number).
   ALTER TABLE leads ADD COLUMN IF NOT EXISTS visitor_id TEXT;
   CREATE INDEX IF NOT EXISTS idx_leads_visitor_id ON leads (visitor_id);
+  -- Medication status captured in the funnel personalize step:
+  -- 'insulin' (taking insulin injection), 'tablets' (taking only tablets),
+  -- or 'none' (no tablets or injection). Used for lead qualification + CRM.
+  ALTER TABLE leads ADD COLUMN IF NOT EXISTS on_medication TEXT;
+  -- Demographics captured in the funnel "Almost there" step:
+  -- age_group: '35-45' | '45-55' | '55+'
+  -- occupation: 'working' | 'housewife' | 'retired'
+  ALTER TABLE leads ADD COLUMN IF NOT EXISTS age_group TEXT;
+  ALTER TABLE leads ADD COLUMN IF NOT EXISTS occupation TEXT;
 `);
 if (_clickMigration && typeof _clickMigration.catch === 'function') {
   _clickMigration.catch(err => console.error('[Migration] click_events error:', err.message));

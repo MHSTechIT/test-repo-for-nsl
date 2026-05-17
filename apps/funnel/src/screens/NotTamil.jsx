@@ -7,9 +7,10 @@ const slideIn = {
   exit: { opacity: 0, y: -8, transition: { duration: 0.18, ease: 'easeIn' } },
 };
 
-const YOUTUBE_URL = 'https://www.youtube.com/@DoctorFarmer';
+const PRODUCTS_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSfFkRVY__WZgzQd219vO9rPMA5nc5d3TwKuBAwlQsMHgcN8MA/viewform';
 
-export default function Disqualified() {
+export default function NotTamil() {
   return (
     <m.div
       variants={slideIn} initial="initial" animate="animate" exit="exit"
@@ -20,7 +21,6 @@ export default function Disqualified() {
         padding: '40px 16px',
       }}
     >
-      {/* Main card */}
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -30,23 +30,22 @@ export default function Disqualified() {
           background: 'rgba(255,255,255,0.60)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(139,92,246,0.18)',
+          border: '1px solid rgba(124,58,237,0.18)',
           borderRadius: 24,
           padding: '36px 28px 40px',
-          boxShadow: '0 8px 40px rgba(91,33,182,0.12), inset 0 1px 0 rgba(255,255,255,0.85)',
+          boxShadow: '0 8px 40px rgba(124,58,237,0.12), inset 0 1px 0 rgba(255,255,255,0.85)',
           textAlign: 'center',
         }}
       >
-        {/* Profile image with gradient ring */}
+        {/* Favicon Logo */}
         <m.img
-          src="/yt.webp"
-          alt="Doctor"
+          src="/favicon.png"
+          alt="Logo"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 320, damping: 20, delay: 0.2 }}
           style={{
-            width: 120,
-            height: 120,
+            width: 120, height: 120,
             objectFit: 'contain',
             display: 'block',
             margin: '0 auto 24px',
@@ -57,30 +56,34 @@ export default function Disqualified() {
         <h2 style={{
           fontFamily: '"Montserrat", Outfit, sans-serif',
           fontWeight: 900, fontSize: '1.45rem',
-          color: '#2d0a6e', lineHeight: 1.2, marginBottom: 14,
+          color: '#3b0764', lineHeight: 1.2, marginBottom: 14,
         }}>
-          This workshop is{' '}
+          This webinar is{' '}
           <span style={{
             background: 'linear-gradient(90deg, #dc2626, #ef4444)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-            not right
-          </span>{' '}for you.
+            not for you.
+          </span>
         </h2>
 
         {/* Divider */}
-        <div style={{ width: 48, height: 3, borderRadius: 2, background: 'linear-gradient(90deg,#7C3AED,#a78bfa)', margin: '0 auto 18px' }} />
+        <div style={{
+          width: 48, height: 3, borderRadius: 2,
+          background: 'linear-gradient(90deg, #7c3aed, #c026d3)',
+          margin: '0 auto 18px',
+        }} />
 
-        {/* Body text */}
+        {/* Subheading */}
         <p style={{
           fontFamily: 'Outfit, sans-serif', fontSize: '0.90rem',
-          color: '#5b3fa0', lineHeight: 1.65, marginBottom: 10,
+          color: '#6b21a8', lineHeight: 1.65, marginBottom: 10,
         }}>
-          You can still learn useful health tips by exploring my Doctor Farmer YouTube channel.
+          Explore our healthy products designed for your overall well-being.
         </p>
 
-        {/* Tip pills */}
-        {['🥗 Diet & Nutrition Tips', '🧘 Lifestyle Reversal', '💊 Reduce Medication Naturally'].map((tip, i) => (
+        {/* Pills */}
+        {['🌿 Natural Health Products', '💪 Boost Your Immunity', '✨ Designed for Your Well-being'].map((tip, i) => (
           <m.div
             key={i}
             initial={{ opacity: 0, x: -10 }}
@@ -88,51 +91,43 @@ export default function Disqualified() {
             transition={{ delay: 0.3 + i * 0.08 }}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(139,92,246,0.07)', borderRadius: 10,
+              background: 'rgba(124,58,237,0.07)', borderRadius: 10,
               padding: '8px 12px', marginBottom: 8, textAlign: 'left',
             }}
           >
-            <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.82rem', color: '#4c1d95', fontWeight: 500 }}>{tip}</span>
+            <span style={{
+              fontFamily: 'Outfit, sans-serif', fontSize: '0.82rem',
+              color: '#3b0764', fontWeight: 500,
+            }}>{tip}</span>
           </m.div>
         ))}
 
-        {/* YouTube button */}
+        {/* Button */}
         <m.a
-          href={YOUTUBE_URL}
+          href={PRODUCTS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackEvent('youtube_clicked')}
+          onClick={() => trackEvent('explore_product_clicked')}
           whileTap={{ scale: 0.97 }}
           animate={{
             boxShadow: [
-              '0 4px 18px rgba(255,0,0,0.25)',
-              '0 6px 30px rgba(255,0,0,0.50)',
-              '0 4px 18px rgba(255,0,0,0.25)',
+              '0 4px 18px rgba(124,58,237,0.25)',
+              '0 6px 30px rgba(124,58,237,0.55)',
+              '0 4px 18px rgba(124,58,237,0.25)',
             ],
           }}
           transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             width: '100%', height: '3.4rem', borderRadius: 50, marginTop: 22,
-            background: 'linear-gradient(135deg, #FF0000, #CC0000)',
+            background: 'linear-gradient(135deg, #7c3aed, #9333ea)',
             color: '#ffffff', fontFamily: 'Outfit, sans-serif',
             fontWeight: 700, fontSize: '1.05rem',
             textDecoration: 'none',
           }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-          </svg>
-          Explore Doctor Farmer Channel
+          Explore Healthy Products
         </m.a>
-
-        {/* Channel name */}
-        <p style={{
-          fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem',
-          color: 'rgba(91,33,182,0.45)', marginTop: 10,
-        }}>
-          @DoctorFarmer
-        </p>
       </m.div>
     </m.div>
   );

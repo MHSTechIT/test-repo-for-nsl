@@ -71,8 +71,9 @@
     min-height: 100vh;
   }
 
-  /* Desktop — remove the 480px mobile cap so layout fills the screen */
-  @media (min-width: 900px) {
+  /* Anything above 480px: body fills viewport so there's no vertical
+     gap-strip between body and html backgrounds. */
+  @media (min-width: 481px) {
     body {
       max-width: 100%;
       margin: 0;

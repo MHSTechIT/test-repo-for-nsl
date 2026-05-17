@@ -17,12 +17,12 @@ function loadState() {
 function saveState(state) {
   try {
     // Persist only the fields that are worth restoring
-    const { lang, sugarLevel, diabetesDuration, languageQualified,
-            fullName, whatsappNumber, email,
+    const { lang, sugarLevel, diabetesDuration, onMedication, ageGroup, occupation,
+            languageQualified, fullName, whatsappNumber, email,
             leadScore, submittedLeadId, whatsappGroupLink, utm } = state;
     localStorage.setItem(STATE_KEY, JSON.stringify({
-      lang, sugarLevel, diabetesDuration, languageQualified,
-      fullName, whatsappNumber, email,
+      lang, sugarLevel, diabetesDuration, onMedication, ageGroup, occupation,
+      languageQualified, fullName, whatsappNumber, email,
       leadScore, submittedLeadId, whatsappGroupLink, utm,
     }));
   } catch {}
@@ -40,6 +40,9 @@ const initialState = {
   navDirection:       'forward',
   sugarLevel:         savedState?.sugarLevel         ?? null,
   diabetesDuration:   savedState?.diabetesDuration   ?? null,
+  onMedication:       savedState?.onMedication       ?? null,
+  ageGroup:           savedState?.ageGroup           ?? null,
+  occupation:         savedState?.occupation         ?? null,
   languageQualified:  savedState?.languageQualified  ?? null,
   fullName:           savedState?.fullName           ?? '',
   whatsappNumber:     savedState?.whatsappNumber     ?? '',
@@ -70,6 +73,12 @@ function reducer(state, action) {
       return { ...state, sugarLevel: action.payload };
     case 'SET_DURATION':
       return { ...state, diabetesDuration: action.payload };
+    case 'SET_MEDICATION':
+      return { ...state, onMedication: action.payload };
+    case 'SET_AGE_GROUP':
+      return { ...state, ageGroup: action.payload };
+    case 'SET_OCCUPATION':
+      return { ...state, occupation: action.payload };
     case 'SET_LANGUAGE_QUALIFIED':
       return { ...state, languageQualified: action.payload };
     case 'SET_FORM_FIELD':
@@ -97,6 +106,9 @@ function reducer(state, action) {
         webinarConfigLoading: false,
         sugarLevel:          null,
         diabetesDuration:    null,
+        onMedication:        null,
+        ageGroup:            null,
+        occupation:          null,
         languageQualified:   null,
         fullName:            '',
         whatsappNumber:      '',

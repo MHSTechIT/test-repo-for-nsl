@@ -5,7 +5,6 @@ import { useFunnel } from '../context/FunnelContext';
 import { t } from '../translations';
 import CountdownTimer, { stopTick } from '../components/CountdownTimer';
 import { trackEvent } from '../utils/trackEvent';
-import Confetti from '../components/Confetti';
 
 /* ── Live social proof messages ───────────────────────────────────────── */
 const LIVE_MSGS = [
@@ -187,10 +186,13 @@ export default function Screen1A() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900);
   const [expanded, setExpanded] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  // 'sugar' → first question, 'language' → second question inline
+  // 'sugar' → first question, 'personalize' → diabetes duration + medication
   const [popupStep, setPopupStep] = useState('sugar');
   const [popupLeaving, setPopupLeaving] = useState(false);
-  const [showEligible, setShowEligible] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(null);
+  const [selectedMedication, setSelectedMedication] = useState(null);
+  const [selectedAge, setSelectedAge] = useState(null);
+  const [selectedOccupation, setSelectedOccupation] = useState(null);
 
   // Track viewport width for desktop split layout
   useEffect(() => {
@@ -264,39 +266,38 @@ export default function Screen1A() {
       dispatch({ type: 'SET_NAV_DIRECTION', payload: 'forward' });
       setLeaving(true);
       setTimeout(() => {
-        window.location.href = import.meta.env.VITE_DISQUALIFIED_URL || '/not-eligible';
+        navigate('/not-eligible');
       }, 420);
       return;
     }
     dispatch({ type: 'SET_SUGAR_LEVEL', payload: opt.id });
-    // Transition to zoom question step
-    setPopupStep('zoom');
+    // Transition to personalize step (duration + medication)
+    setPopupStep('personalize');
   }
 
-  function handleZoomYes() {
-    trackEvent('tamil_yes', state.webinarConfig?.next_webinar_at);
-    setPopupLeaving(true);
-    setTimeout(() => {
-      setExpanded(false);
-      setPopupStep('sugar');
-      setPopupLeaving(false);
-      setShowEligible(true);
-      setTimeout(() => navigate('/register'), 1800);
-    }, 420);
+  function handlePersonalizeContinue() {
+    if (!selectedDuration || !selectedMedication) return;
+    trackEvent(`duration_${selectedDuration}`, state.webinarConfig?.next_webinar_at);
+    trackEvent(`medication_${selectedMedication}`, state.webinarConfig?.next_webinar_at);
+    dispatch({ type: 'SET_DURATION', payload: selectedDuration });
+    dispatch({ type: 'SET_MEDICATION', payload: selectedMedication });
+    setPopupStep('demographics');
   }
 
-  function handleZoomNo() {
-    trackEvent('tamil_no', state.webinarConfig?.next_webinar_at);
-    dispatch({ type: 'SET_NAV_DIRECTION', payload: 'forward' });
-    setLeaving(true);
-    setTimeout(() => {
-      window.location.href = (import.meta.env.VITE_DISQUALIFIED_URL || '') + '/not-tamil';
-    }, 420);
+  function handleDemographicsContinue() {
+    if (!selectedAge || !selectedOccupation) return;
+    dispatch({ type: 'SET_AGE_GROUP', payload: selectedAge });
+    dispatch({ type: 'SET_OCCUPATION', payload: selectedOccupation });
+    navigate('/register');
   }
 
   function handleClose() {
     setExpanded(false);
     setPopupStep('sugar');
+    setSelectedDuration(null);
+    setSelectedMedication(null);
+    setSelectedAge(null);
+    setSelectedOccupation(null);
   }
 
   const cardAnim = (i) => ({
@@ -418,84 +419,238 @@ export default function Screen1A() {
             </div>
           </m.div>
         )}
-        {popupStep === 'zoom' && (
+        {popupStep === 'personalize' && (
           <m.div
-            key="zoom-step"
+            key="personalize-step"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50, transition: { duration: 0.25, ease: [0.32, 0, 0.67, 0] } }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            style={{ padding: '20px 20px 28px' }}
+            style={{ padding: '20px 20px 24px', maxHeight: '65vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
           >
-            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.78rem', color: '#7c5cbf', fontWeight: 500, margin: '0 0 6px' }}>
-              This webinar is conducted in Tamil
+            {/* Headline + subhead */}
+            <h2 style={{ fontFamily: '"Montserrat", "Outfit", sans-serif', fontWeight: 900, fontSize: '1.55rem', color: '#2d0a6e', textAlign: 'center', margin: '0 0 4px', lineHeight: 1.15 }}>
+              One more thing
+            </h2>
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem', color: 'rgba(91,33,182,0.60)', textAlign: 'center', margin: '0 0 16px' }}>
+              We'll personalise the session for you
             </p>
-            <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '1.45rem', color: '#2d0a6e', margin: '0 0 16px', lineHeight: 1.2 }}>
-              Do you understand Tamil?
+
+            {/* Q1 — diabetes duration */}
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#5B21B6', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+              HOW LONG HAVE YOU HAD DIABETES?
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <m.button onClick={handleZoomYes} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileTap={{ scale: 0.97 }} style={pillStyle}>
-                எனக்கு தமிழ் தெரியும்
-              </m.button>
-              <m.button onClick={handleZoomNo} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} whileTap={{ scale: 0.97 }} style={pillStyle}>
-                No, I don't understand Tamil
-              </m.button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {[
+                { id: 'new',  label: 'Less than 2 years' },
+                { id: 'mid',  label: '2 – 5 years' },
+                { id: 'long', label: 'More than 5 years' },
+              ].map((opt, i) => {
+                const isSelected = selectedDuration === opt.id;
+                return (
+                  <m.button
+                    key={opt.id}
+                    onClick={() => setSelectedDuration(opt.id)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.06 + i * 0.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      ...pillStyle,
+                      background: isSelected ? 'rgba(91,33,182,0.12)' : pillStyle.background,
+                      border: isSelected ? '1.5px solid #5B21B6' : pillStyle.border,
+                      color: isSelected ? '#2d0a6e' : pillStyle.color,
+                    }}
+                  >
+                    {opt.label}
+                  </m.button>
+                );
+              })}
             </div>
+
+            {/* Q2 — medication */}
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#5B21B6', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+              ARE YOU CURRENTLY ON MEDICATION?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+              {[
+                { id: 'insulin', label: 'Taking insulin injection' },
+                { id: 'tablets', label: 'Taking only tablets' },
+                { id: 'none',    label: 'No tablets or injection' },
+              ].map((opt, i) => {
+                const isSelected = selectedMedication === opt.id;
+                return (
+                  <m.button
+                    key={opt.id}
+                    onClick={() => setSelectedMedication(opt.id)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18 + i * 0.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      ...pillStyle,
+                      background: isSelected ? 'rgba(91,33,182,0.12)' : pillStyle.background,
+                      border: isSelected ? '1.5px solid #5B21B6' : pillStyle.border,
+                      color: isSelected ? '#2d0a6e' : pillStyle.color,
+                    }}
+                  >
+                    {opt.label}
+                  </m.button>
+                );
+              })}
+            </div>
+
+            {/* Continue */}
+            <m.button
+              onClick={handlePersonalizeContinue}
+              disabled={!selectedDuration || !selectedMedication}
+              whileTap={(selectedDuration && selectedMedication) ? { scale: 0.97 } : {}}
+              style={{
+                width: '100%',
+                padding: '14px 18px',
+                borderRadius: 50,
+                background: (selectedDuration && selectedMedication)
+                  ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)'
+                  : 'rgba(91,33,182,0.30)',
+                border: 'none',
+                color: '#fff',
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: (selectedDuration && selectedMedication) ? 'pointer' : 'not-allowed',
+                boxShadow: (selectedDuration && selectedMedication) ? '0 4px 18px rgba(91,33,182,0.32)' : 'none',
+                transition: 'background 200ms',
+              }}
+            >
+              Continue →
+            </m.button>
+          </m.div>
+        )}
+        {popupStep === 'demographics' && (
+          <m.div
+            key="demographics-step"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50, transition: { duration: 0.25, ease: [0.32, 0, 0.67, 0] } }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            style={{ padding: '20px 20px 24px', maxHeight: '65vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+          >
+            {/* Headline + subhead */}
+            <h2 style={{ fontFamily: '"Montserrat", "Outfit", sans-serif', fontWeight: 900, fontSize: '1.55rem', color: '#2d0a6e', textAlign: 'center', margin: '0 0 4px', lineHeight: 1.15 }}>
+              Almost there!
+            </h2>
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem', color: 'rgba(91,33,182,0.60)', textAlign: 'center', margin: '0 0 16px' }}>
+              To customise the session for you
+            </p>
+
+            {/* Q1 — age group (horizontal row of 3 small pills) */}
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#5B21B6', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+              YOUR AGE GROUP?
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {[
+                { id: '35-45', label: '35 – 45' },
+                { id: '45-55', label: '45 – 55' },
+                { id: '55+',   label: '55+' },
+              ].map((opt, i) => {
+                const isSelected = selectedAge === opt.id;
+                return (
+                  <m.button
+                    key={opt.id}
+                    onClick={() => setSelectedAge(opt.id)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.06 + i * 0.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      flex: 1,
+                      padding: '10px 0',
+                      borderRadius: 50,
+                      background: isSelected ? 'rgba(91,33,182,0.12)' : 'rgba(255,255,255,0.70)',
+                      backdropFilter: 'blur(20px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      border: isSelected ? '1.5px solid #5B21B6' : '1px solid rgba(139,92,246,0.22)',
+                      color: '#2d0a6e',
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '0.92rem',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.80), 0 2px 6px rgba(91,33,182,0.08)',
+                    }}
+                  >
+                    {opt.label}
+                  </m.button>
+                );
+              })}
+            </div>
+
+            {/* Q2 — occupation */}
+            <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#5B21B6', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+              WHAT BEST DESCRIBES YOU?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+              {[
+                { id: 'working',   label: 'Working Professional' },
+                { id: 'housewife', label: 'Housewife' },
+                { id: 'retired',   label: 'Retired Person' },
+              ].map((opt, i) => {
+                const isSelected = selectedOccupation === opt.id;
+                return (
+                  <m.button
+                    key={opt.id}
+                    onClick={() => setSelectedOccupation(opt.id)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18 + i * 0.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      ...pillStyle,
+                      background: isSelected ? 'rgba(91,33,182,0.12)' : pillStyle.background,
+                      border: isSelected ? '1.5px solid #5B21B6' : pillStyle.border,
+                      color: isSelected ? '#2d0a6e' : pillStyle.color,
+                    }}
+                  >
+                    {opt.label}
+                  </m.button>
+                );
+              })}
+            </div>
+
+            {/* Continue */}
+            <m.button
+              onClick={handleDemographicsContinue}
+              disabled={!selectedAge || !selectedOccupation}
+              whileTap={(selectedAge && selectedOccupation) ? { scale: 0.97 } : {}}
+              style={{
+                width: '100%',
+                padding: '14px 18px',
+                borderRadius: 50,
+                background: (selectedAge && selectedOccupation)
+                  ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)'
+                  : 'rgba(91,33,182,0.30)',
+                border: 'none',
+                color: '#fff',
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: (selectedAge && selectedOccupation) ? 'pointer' : 'not-allowed',
+                boxShadow: (selectedAge && selectedOccupation) ? '0 4px 18px rgba(91,33,182,0.32)' : 'none',
+                transition: 'background 200ms',
+              }}
+            >
+              Continue →
+            </m.button>
           </m.div>
         )}
       </AnimatePresence>
     </div>
   );
 
-  /* ── Shared: eligible overlay ── */
-  const eligibleOverlay = (
-    <AnimatePresence>
-      {showEligible && (
-        <m.div
-          key="eligible-overlay"
-          initial={{ opacity: 0, scale: 0.88, y: 24 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: -16 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          style={{ position: 'fixed', inset: 0, zIndex: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}
-        >
-          <div style={{
-            background: 'rgba(255,255,255,0.75)',
-            backdropFilter: 'blur(32px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            borderRadius: 24, padding: '32px 28px', textAlign: 'center',
-            boxShadow: '0 4px 32px rgba(91,33,182,0.12), inset 0 1px 0 rgba(255,255,255,0.90)',
-            border: '1px solid rgba(139,92,246,0.18)', maxWidth: 300, width: '100%',
-          }}>
-            <m.div
-              initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 20, delay: 0.1 }}
-              style={{ width: 68, height: 68, borderRadius: '50%', background: 'linear-gradient(135deg, #22C55E, #16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', boxShadow: '0 0 0 10px rgba(34,197,94,0.12), 0 8px 32px rgba(34,197,94,0.50)' }}
-            >
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                <m.path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                  transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }} />
-              </svg>
-            </m.div>
-            <m.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.35 }}
-              style={{ fontFamily: '"Montserrat", sans-serif', fontWeight: 900, fontSize: '1.2rem', color: '#2d0a6e', lineHeight: 1.25, marginBottom: 8 }}>
-              You are Eligible!
-            </m.p>
-            <m.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38, duration: 0.3 }}
-              style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem', color: '#15803d', fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
-              Your spot for the FREE Webinar is waiting
-            </m.p>
-          </div>
-        </m.div>
-      )}
-    </AnimatePresence>
-  );
-
   /* ── Blur backdrop ── */
   const blurBackdrop = (
     <AnimatePresence>
-      {(expanded || showEligible) && (
+      {expanded && (
         <m.div
           key="blur-backdrop"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -598,7 +753,6 @@ export default function Screen1A() {
 
       {/* ══ Shared overlays (both layouts) ══ */}
       {blurBackdrop}
-      {eligibleOverlay}
 
       {/* ── Popup panel ── */}
       <AnimatePresence>
@@ -648,11 +802,11 @@ export default function Screen1A() {
                           transition={{ duration: 0.3 }}
                           style={{ width: '46%', maxWidth: 200, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))' }} />
                       ) : (
-                        <m.img key="zoom-d" src="/zoom.webp" alt=""
-                          initial={{ opacity: 0, scale: 0.75, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                        <m.img key="gmeter-d-p" src="/gmeter.webp" alt=""
+                          initial={{ opacity: 0, scale: 0.85, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.7, y: -10, transition: { duration: 0.2 } }}
                           transition={{ duration: 0.35 }}
-                          style={{ width: '30%', maxWidth: 120, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.25))' }} />
+                          style={{ width: '38%', maxWidth: 160, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.30))' }} />
                       )}
                     </AnimatePresence>
                   </div>
@@ -686,11 +840,11 @@ export default function Screen1A() {
                       transition={{ duration: 0.35, delay: 0.05 }}
                       style={{ width: '58%', maxWidth: 220, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.45))' }} />
                   ) : (
-                    <m.img key="zoom" src="/zoom.webp" alt=""
-                      initial={{ opacity: 0, scale: 0.75, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                    <m.img key="gmeter-p" src="/gmeter.webp" alt=""
+                      initial={{ opacity: 0, scale: 0.85, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.7, y: -10, transition: { duration: 0.25 } }}
                       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                      style={{ width: '38%', maxWidth: 140, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.30))' }} />
+                      style={{ width: '46%', maxWidth: 180, filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))' }} />
                   )}
                 </AnimatePresence>
               </div>
@@ -706,9 +860,6 @@ export default function Screen1A() {
           {ctaButton}
         </div>
       )}
-
-      {/* ── Confetti burst on eligible ── */}
-      <Confetti active={showEligible} count={260} duration={5500} />
 
     </div>
   );

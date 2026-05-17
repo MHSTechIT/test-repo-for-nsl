@@ -24,6 +24,9 @@ const validators = [
   body('sugar_level').isIn(['150-250', '250+']),
   body('diabetes_duration').isIn(['new', 'mid', 'long', 'pre']),
   body('language_pref').isIn(['tamil', 'english']),
+  body('on_medication').optional({ nullable: true }).isIn(['insulin', 'tablets', 'none']),
+  body('age_group').optional({ nullable: true }).isIn(['35-45', '45-55', '55+']),
+  body('occupation').optional({ nullable: true }).isIn(['working', 'housewife', 'retired']),
 ];
 
 const ALLOWED_SOURCES = new Set(['meta', 'yt']);
@@ -60,7 +63,8 @@ router.post('/leads', validators, async (req, res) => {
   }
 
   const { full_name, whatsapp_number, email, sugar_level, diabetes_duration,
-          language_pref, utm_source, utm_campaign, utm_content, fbclid } = req.body;
+          language_pref, on_medication, age_group, occupation,
+          utm_source, utm_campaign, utm_content, fbclid } = req.body;
 
   // Visitor ID from the client's localStorage. Lets us tie this lead to
   // its pre-registration page_visited events for Option-C unique-visitor
@@ -89,14 +93,15 @@ router.post('/leads', validators, async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO leads
         (full_name, whatsapp_number, email, sugar_level, diabetes_duration,
-         language_pref, lead_score, utm_source, utm_campaign, utm_content, fbclid, webinar_id, source, visitor_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         language_pref, lead_score, utm_source, utm_campaign, utm_content, fbclid, webinar_id, source, visitor_id, on_medication, age_group, occupation)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING id`,
       [
         full_name, whatsapp_number, email, sugar_level, diabetes_duration,
         language_pref, lead_score,
         utm_source || null, utm_campaign || null, utm_content || null, fbclid || null,
-        webinar_id, source, visitor_id,
+        webinar_id, source, visitor_id, on_medication || null,
+        age_group || null, occupation || null,
       ]
     );
 
