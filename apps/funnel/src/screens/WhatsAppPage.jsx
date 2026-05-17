@@ -28,7 +28,7 @@ function LinkExpiryTimer() {
   );
 }
 
-export default function WhatsAppPage() {
+export default function WhatsAppPage({ leadId: leadIdProp }) {
   const [waLink, setWaLink] = useState('');
   const [webinarAt, setWebinarAt] = useState(null);
 
@@ -55,9 +55,9 @@ export default function WhatsAppPage() {
 
   function handleJoinClick() {
     trackEvent('wa_join_clicked', webinarAt);
-    // lead_id passed as URL param from the funnel registration page
+    // lead_id passed as a prop (inline overlay) or URL param (direct nav)
     const params = new URLSearchParams(window.location.search);
-    const leadId = params.get('lead_id') || localStorage.getItem('mhs_lead_id');
+    const leadId = leadIdProp || params.get('lead_id') || localStorage.getItem('mhs_lead_id');
     if (leadId) {
       fetch(`/api/leads/${leadId}/wa-click`, { method: 'PATCH' }).catch(() => {});
     }

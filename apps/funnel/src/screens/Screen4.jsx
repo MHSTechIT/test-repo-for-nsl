@@ -19,7 +19,7 @@ function validate(fullName, whatsappNumber, email) {
   return errs;
 }
 
-export default function Screen4() {
+export default function Screen4({ onSubmitted, onClose }) {
   const { state, dispatch } = useFunnel();
   const lang = state.lang;
   const navigate = useNavigate();
@@ -107,7 +107,8 @@ export default function Screen4() {
       trackEvent('registration_submitted', state.webinarConfig?.next_webinar_at);
       setSubmitting(false);
       if (data.lead_id) localStorage.setItem('mhs_lead_id', data.lead_id);
-      navigate(`/whatsapp?lead_id=${data.lead_id}`);
+      if (onSubmitted) onSubmitted(data.lead_id);
+      else navigate(`/whatsapp?lead_id=${data.lead_id}`);
     } catch (err) {
       clearTimeout(timeout);
       if (err.name === 'AbortError') {
@@ -149,7 +150,7 @@ export default function Screen4() {
       {/* Close ✕ */}
         <button
           type="button"
-          onClick={() => navigate('/')}
+          onClick={() => { if (onClose) onClose(); else navigate('/'); }}
           aria-label="Close"
           style={{
             position: 'absolute', top: 12, right: 12,

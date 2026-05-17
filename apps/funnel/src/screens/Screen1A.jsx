@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { useFunnel } from '../context/FunnelContext';
 import { t } from '../translations';
 import CountdownTimer, { stopTick } from '../components/CountdownTimer';
 import { trackEvent } from '../utils/trackEvent';
+
+const Screen4 = lazy(() => import('./Screen4'));
+const WhatsAppPage = lazy(() => import('./WhatsAppPage'));
 
 /* ── Live social proof messages ───────────────────────────────────────── */
 const LIVE_MSGS = [
@@ -193,6 +196,9 @@ export default function Screen1A() {
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [selectedAge, setSelectedAge] = useState(null);
   const [selectedOccupation, setSelectedOccupation] = useState(null);
+  // 'home' = landing only; 'register' = registration overlay; 'whatsapp' = WA overlay
+  const [view, setView] = useState('home');
+  const [submittedLeadId, setSubmittedLeadId] = useState(null);
 
   // Track viewport width for desktop split layout
   useEffect(() => {
@@ -288,7 +294,9 @@ export default function Screen1A() {
     if (!selectedAge || !selectedOccupation) return;
     dispatch({ type: 'SET_AGE_GROUP', payload: selectedAge });
     dispatch({ type: 'SET_OCCUPATION', payload: selectedOccupation });
-    navigate('/register');
+    setExpanded(false);
+    setPopupStep('sugar');
+    setView('register');
   }
 
   function handleClose() {
@@ -855,11 +863,28 @@ export default function Screen1A() {
       </AnimatePresence>
 
       {/* ── Mobile-only fixed bottom CTA ── */}
-      {!isDesktop && (
+      {!isDesktop && view === 'home' && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', padding: '12px 16px 20px', background: 'transparent', zIndex: 30 }}>
           {ctaButton}
         </div>
       )}
+
+      {/* ── Register + WhatsApp overlays — same URL, controlled by view ── */}
+      <AnimatePresence mode="wait">
+        {view === 'register' && (
+          <Suspense key="register-overlay" fallback={null}>
+            <Screen4
+              onSubmitted={(leadId) => { setSubmittedLeadId(leadId); setView('whatsapp'); }}
+              onClose={() => setView('home')}
+            />
+          </Suspense>
+        )}
+        {view === 'whatsapp' && (
+          <Suspense key="whatsapp-overlay" fallback={null}>
+            <WhatsAppPage leadId={submittedLeadId} />
+          </Suspense>
+        )}
+      </AnimatePresence>
 
     </div>
   );
